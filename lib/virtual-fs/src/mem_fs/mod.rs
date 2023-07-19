@@ -67,7 +67,6 @@ struct ArcDirectoryNode {
     metadata: Metadata,
 }
 
-#[cfg(feature = "symlink")]
 #[derive(Debug)]
 struct SymlinkNode {
     inode: Inode,
@@ -84,7 +83,6 @@ enum Node {
     CustomFile(CustomFileNode),
     Directory(DirectoryNode),
     ArcDirectory(ArcDirectoryNode),
-    #[cfg(feature = "symlink")]
     Symlink(SymlinkNode),
 }
 
@@ -97,7 +95,6 @@ impl Node {
             Self::CustomFile(CustomFileNode { inode, .. }) => inode,
             Self::Directory(DirectoryNode { inode, .. }) => inode,
             Self::ArcDirectory(ArcDirectoryNode { inode, .. }) => inode,
-            #[cfg(feature = "symlink")]
             Self::Symlink(SymlinkNode { inode, .. }) => inode,
         }
     }
@@ -110,7 +107,6 @@ impl Node {
             Self::CustomFile(CustomFileNode { name, .. }) => name.as_os_str(),
             Self::Directory(DirectoryNode { name, .. }) => name.as_os_str(),
             Self::ArcDirectory(ArcDirectoryNode { name, .. }) => name.as_os_str(),
-            #[cfg(feature = "symlink")]
             Self::Symlink(SymlinkNode { name, .. }) => name.as_os_str(),
         }
     }
@@ -123,7 +119,6 @@ impl Node {
             Self::CustomFile(CustomFileNode { metadata, .. }) => metadata,
             Self::Directory(DirectoryNode { metadata, .. }) => metadata,
             Self::ArcDirectory(ArcDirectoryNode { metadata, .. }) => metadata,
-            #[cfg(feature = "symlink")]
             Self::Symlink(SymlinkNode { metadata, .. }) => metadata,
         }
     }
@@ -136,7 +131,6 @@ impl Node {
             Self::CustomFile(CustomFileNode { metadata, .. }) => metadata,
             Self::Directory(DirectoryNode { metadata, .. }) => metadata,
             Self::ArcDirectory(ArcDirectoryNode { metadata, .. }) => metadata,
-            #[cfg(feature = "symlink")]
             Self::Symlink(SymlinkNode { metadata, .. }) => metadata,
         }
     }
@@ -149,7 +143,6 @@ impl Node {
             Self::CustomFile(CustomFileNode { name, .. }) => *name = new_name,
             Self::Directory(DirectoryNode { name, .. }) => *name = new_name,
             Self::ArcDirectory(ArcDirectoryNode { name, .. }) => *name = new_name,
-            #[cfg(feature = "symlink")]
             Self::Symlink(SymlinkNode { name, .. }) => *name = new_name,
         }
     }

@@ -303,18 +303,14 @@ impl FileSystem for UnionFileSystem {
     }
     fn metadata(&self, path: &Path) -> Result<Metadata> {
         debug!("metadata: path={}", path.display());
-        self.get_metadata(
-            path,
-            #[cfg(feature = "symlink")]
-            true,
-        )
+        self.get_metadata(path, true)
     }
-    #[cfg(feature = "symlink")]
+
     fn symlink_metadata(&self, path: &Path) -> Result<Metadata> {
         debug!("symlink_metadata: path={}", path.display());
         self.get_metadata(path, false)
     }
-    #[cfg(feature = "symlink")]
+
     fn symlink(&self, _original: &Path, _link: &Path) -> Result<()> {
         todo!()
     }
@@ -341,24 +337,16 @@ impl FileSystem for UnionFileSystem {
 }
 
 impl UnionFileSystem {
-    fn get_metadata(
-        &self,
-        path: &Path,
-        #[cfg(feature = "symlink")] follow_symlink: bool,
-    ) -> Result<Metadata> {
+    fn get_metadata(&self, path: &Path, follow_symlink: bool) -> Result<Metadata> {
         debug!("metadata: path={}", path.display());
         let mut ret_error = FsError::EntryNotFound;
         let path = path.to_string_lossy();
         for (path, mount) in filter_mounts(&self.mounts, path.as_ref()) {
-            #[cfg(feature = "symlink")]
             let maybe_metadata = if follow_symlink {
                 mount.fs.metadata(Path::new(path.as_str()))
             } else {
                 mount.fs.symlink_metadata(Path::new(path.as_str()))
             };
-
-            #[cfg(not(feature = "symlink"))]
-            let maybe_metadata = mount.fs.metadata(Path::new(path.as_str()));
 
             match maybe_metadata {
                 Ok(ret) => {

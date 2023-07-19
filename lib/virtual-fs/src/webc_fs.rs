@@ -348,11 +348,11 @@ where
     fn metadata(&self, path: &Path) -> Result<Metadata, FsError> {
         self.get_metadata(path, true)
     }
-    #[cfg(feature = "symlink")]
+
     fn symlink_metadata(&self, path: &Path) -> Result<Metadata, FsError> {
         self.get_metadata(path, false)
     }
-    #[cfg(feature = "symlink")]
+
     fn symlink(&self, original: &Path, link: &Path) -> Result<(), FsError> {
         self.memory.symlink(original, link)
     }

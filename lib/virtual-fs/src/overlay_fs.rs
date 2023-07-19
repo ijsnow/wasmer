@@ -295,14 +295,9 @@ where
     }
 
     fn metadata(&self, path: &Path) -> Result<Metadata, FsError> {
-        self.get_metadata(
-            path,
-            #[cfg(feature = "symlink")]
-            true,
-        )
+        self.get_metadata(path, true)
     }
 
-    #[cfg(feature = "symlink")]
     fn symlink_metadata(&self, path: &Path) -> Result<Metadata, FsError> {
         self.get_metadata(path, false)
     }
@@ -332,7 +327,6 @@ where
         self.permission_error_or_not_found(path)
     }
 
-    #[cfg(feature = "symlink")]
     fn symlink(&self, _original: &Path, _link: &Path) -> Result<(), FsError> {
         todo!()
     }
@@ -348,15 +342,7 @@ where
     S: for<'a> FileSystems<'a> + Send + Sync + 'static,
     for<'a> <<S as FileSystems<'a>>::Iter as IntoIterator>::IntoIter: Send,
 {
-    fn get_metadata(
-        &self,
-        path: &Path,
-        #[cfg(feature = "symlink")] follow_symlink: bool,
-    ) -> Result<Metadata, FsError> {
-        #[cfg(not(feature = "symlink"))]
-        let read_metadata = |fs: &dyn FileSystem| fs.metadata(path);
-
-        #[cfg(feature = "symlink")]
+    fn get_metadata(&self, path: &Path, follow_symlink: bool) -> Result<Metadata, FsError> {
         let read_metadata = |fs: &dyn FileSystem| {
             if follow_symlink {
                 fs.metadata(path)

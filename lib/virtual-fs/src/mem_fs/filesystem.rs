@@ -239,20 +239,11 @@ impl FileSystem {
         Ok(())
     }
 
-    fn get_metadata(
-        &self,
-        path: &Path,
-
-        #[cfg(feature = "symlink")] follow_symlink: bool,
-    ) -> Result<Metadata> {
+    fn get_metadata(&self, path: &Path, follow_symlink: bool) -> Result<Metadata> {
         // Read lock.
         let guard = self.inner.read().map_err(|_| FsError::Lock)?;
 
-        match guard.inode_of(
-            path,
-            #[cfg(feature = "symlink")]
-            follow_symlink,
-        )? {
+        match guard.inode_of(path, follow_symlink)? {
             InodeResolution::Found(inode) => Ok(guard
                 .storage
                 .get(inode)
@@ -556,20 +547,11 @@ impl crate::FileSystem for FileSystem {
     }
 
     fn metadata(&self, path: &Path) -> Result<Metadata> {
-        self.get_metadata(
-            path,
-            #[cfg(feature = "symlink")]
-            true,
-        )
+        self.get_metadata(path, true)
     }
 
-    #[cfg(feature = "symlink")]
     fn symlink_metadata(&self, path: &Path) -> Result<Metadata> {
-        self.get_metadata(
-            path,
-            #[cfg(feature = "symlink")]
-            false,
-        )
+        self.get_metadata(path, false)
     }
 
     fn remove_file(&self, path: &Path) -> Result<()> {
@@ -633,7 +615,6 @@ impl crate::FileSystem for FileSystem {
         OpenOptions::new(self)
     }
 
-    #[cfg(feature = "symlink")]
     fn symlink(&self, original: &Path, link: &Path) -> Result<()> {
         if self.metadata(link).is_ok() {
             return Err(FsError::AlreadyExists);
@@ -747,11 +728,7 @@ impl InodeResolution {
 
 impl FileSystemInner {
     /// Get the inode associated to a path if it exists.
-    pub(super) fn inode_of(
-        &self,
-        path: &Path,
-        #[cfg(feature = "symlink")] follow_symlink: bool,
-    ) -> Result<InodeResolution> {
+    pub(super) fn inode_of(&self, path: &Path, follow_symlink: bool) -> Result<InodeResolution> {
         // SAFETY: The root node always exists, so it's safe to unwrap here.
         let mut node = self.storage.get(ROOT_INODE).unwrap();
         let mut components = path.components();
@@ -771,7 +748,6 @@ impl FileSystemInner {
                         .ok_or(FsError::EntryNotFound)?;
 
                     match found {
-                        #[cfg(feature = "symlink")]
                         Node::Symlink(SymlinkNode { link, .. }) if follow_symlink => {
                             return self.inode_of(link, true)
                         }
@@ -789,7 +765,6 @@ impl FileSystemInner {
                     return Ok(InodeResolution::Redirect(fs.clone(), path));
                 }
                 // Symlink appears to be a directory, so we'll follow it despite `follow_symlink`.
-                #[cfg(feature = "symlink")]
                 Node::Symlink(SymlinkNode { link, .. }) => {
                     return self.inode_of(link, follow_symlink)
                 }
@@ -803,11 +778,7 @@ impl FileSystemInner {
     /// Get the inode associated to a “parent path”. The returned
     /// inode necessarily represents a directory.
     pub(super) fn inode_of_parent(&self, parent_path: &Path) -> Result<InodeResolution> {
-        match self.inode_of(
-            parent_path,
-            #[cfg(feature = "symlink")]
-            true,
-        )? {
+        match self.inode_of(parent_path, true)? {
             InodeResolution::Found(inode_of_parent) => {
                 // Ensure it is a directory.
                 match self.storage.get(inode_of_parent) {
@@ -891,7 +862,6 @@ impl FileSystemInner {
                     }
                     // NOTE: this is the same as above but you can't disable a single case in an or
                     // match arm.
-                    #[cfg(feature = "symlink")]
                     Node::Symlink(SymlinkNode { inode, name, .. })
                         if name.as_os_str() == name_of_file =>
                     {
@@ -939,7 +909,6 @@ impl FileSystemInner {
                     }
                     // NOTE: this is the same as above but you can't disable a single case in an or
                     // match arm.
-                    #[cfg(feature = "symlink")]
                     Node::Symlink(SymlinkNode { inode, name, .. })
                         if name.as_os_str() == name_of =>
                     {
@@ -1029,11 +998,7 @@ impl FileSystemInner {
     /// * A normalized path exists in the file system.
     pub(super) fn canonicalize(&self, path: &Path) -> Result<(PathBuf, InodeResolution)> {
         let new_path = self.canonicalize_without_inode(path)?;
-        let inode = self.inode_of(
-            &new_path,
-            #[cfg(feature = "symlink")]
-            true,
-        )?;
+        let inode = self.inode_of(&new_path, true)?;
 
         Ok((new_path, inode))
     }
@@ -1109,7 +1074,7 @@ impl fmt::Debug for FileSystemInner {
                         Node::CustomFile { .. } => "custom-file",
                         Node::Directory { .. } => "dir",
                         Node::ArcDirectory { .. } => "arc-dir",
-                        #[cfg(feature = "symlink")]
+
                         Node::Symlink { .. } => "symlink",
                     },
                     name = node.name().to_string_lossy(),
@@ -2000,7 +1965,6 @@ mod test_filesystem {
         assert_eq!(buf, b"a");
     }
 
-    #[cfg(feature = "symlink")]
     #[tokio::test]
     async fn test_symlink() {
         let fs = FileSystem::default();
